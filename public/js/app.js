@@ -18,7 +18,7 @@ function showScene(scene) {
   state.scene = scene;
   for (const id of ['home', 'game', 'result']) $(id + '-view').hidden = id !== scene;
   document.body.classList.toggle('playing', scene === 'game');
-  if (scene !== 'game') { state.keys.clear(); state.fire = false; state.selected = null; renderer.target = null; for (const id of ['cheat-dialog', 'skill-dialog', 'leave-dialog']) $(id).close(); }
+  if (scene !== 'game') { state.keys.clear(); state.fire = false; state.selected = null; renderer.target = null; for (const id of ['cheat-dialog', 'skill-dialog', 'leave-dialog', 'menu-dialog']) $(id).close(); }
   if (scene === 'game') { $('game-canvas').focus({ preventScroll: true }); window.scrollTo(0, 0); }
 }
 
@@ -171,7 +171,12 @@ function setAuthMode(register) {
   $('auth-submit').textContent = register ? 'Create account' : 'Sign in'; $('auth-message').textContent = '';
 }
 
-function openManual() { state.keys.clear(); state.fire = false; $('manual-dialog').showModal(); }
+function closeMenu() { if ($('menu-dialog').open) $('menu-dialog').close(); }
+function openManual() { closeMenu(); state.keys.clear(); state.fire = false; $('manual-dialog').showModal(); }
+function setSoundButtonState(on) {
+  const button = $('sound-button'), label = on ? 'Sound on' : 'Sound off';
+  button.setAttribute('aria-pressed', String(on)); button.setAttribute('aria-label', label); button.title = label;
+}
 function playSound(id, volume) {
   if (!state.sound) return;
   const audio = $(id); audio.volume = volume; audio.currentTime = 0; audio.play().catch(() => {});
@@ -180,7 +185,7 @@ function activateSound(force = false) {
   if (state.sound) return;
   if (state.audioUnlocked && !force) return;
   state.audioUnlocked = true;
-  state.sound = true; $('sound-button').textContent = 'Sound on'; $('sound-button').setAttribute('aria-pressed', 'true');
+  state.sound = true; setSoundButtonState(true);
   // Prime both HTML audio elements during a user gesture for browser playback policies.
   for (const id of ['shoot-audio', 'altar-audio']) { const audio = $(id); audio.volume = 0; audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {}); }
 }
@@ -213,7 +218,9 @@ $('leave-room-button').onclick = () => request('room:leave').catch(error => toas
 for (const button of document.querySelectorAll('[data-difficulty]')) button.onclick = () => request('room:difficulty', { difficulty: button.dataset.difficulty }).catch(error => toast(error.message));
 $('manual-button').onclick = openManual; $('learn-button').onclick = openManual; $('game-help-button').onclick = openManual;
 for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => button.closest('dialog').close();
-$('sound-button').onclick = () => { if (!state.sound) { activateSound(true); playSound('altar-audio', .2); } else { state.sound = false; $('sound-button').textContent = 'Sound off'; $('sound-button').setAttribute('aria-pressed', 'false'); } };
+$('menu-button').onclick = () => { if ($('menu-dialog').open) closeMenu(); else { state.keys.clear(); state.fire = false; $('menu-dialog').showModal(); $('menu-button').setAttribute('aria-expanded', 'true'); } };
+$('menu-dialog').addEventListener('close', () => $('menu-button').setAttribute('aria-expanded', 'false'));
+$('sound-button').onclick = () => { if (!state.sound) { activateSound(true); playSound('altar-audio', .2); } else { state.sound = false; setSoundButtonState(false); } };
 for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', () => { state.keys.clear(); state.fire = false; });
 $('skill-dialog').addEventListener('cancel', event => event.preventDefault());
 $('skill-options').onclick = event => { const button = event.target.closest('[data-choose]'); if (button) request('game:action', { type: 'choose', skill: button.dataset.choose }).catch(error => toast(error.message)); };
@@ -233,7 +240,7 @@ async function loadLeaderboard(difficulty) {
   $('global-ranking').textContent = 'Receiving explorer records…';
   try { const result = await api(`/api/rankings?difficulty=${difficulty}`); html($('global-ranking'), rankingMarkup(result.ranking)); } catch (error) { $('global-ranking').textContent = error.message; }
 }
-$('leaderboard-button').onclick = () => { state.keys.clear(); state.fire = false; $('leaderboard-dialog').showModal(); loadLeaderboard('normal'); };
+$('leaderboard-button').onclick = () => { closeMenu(); state.keys.clear(); state.fire = false; $('leaderboard-dialog').showModal(); loadLeaderboard('normal'); };
 for (const button of document.querySelectorAll('[data-board]')) button.onclick = () => loadLeaderboard(button.dataset.board);
 
 document.addEventListener('keydown', event => {
@@ -242,7 +249,7 @@ document.addEventListener('keydown', event => {
   if (key === 'tab') {
     event.preventDefault(); if (event.repeat) return;
     if ($('cheat-dialog').open) $('cheat-dialog').close();
-    else { $('skill-dialog').close(); $('manual-dialog').close(); $('leave-dialog').close(); $('leaderboard-dialog').close(); state.keys.clear(); state.fire = false; $('cheat-dialog').showModal(); }
+    else { $('skill-dialog').close(); $('manual-dialog').close(); $('leave-dialog').close(); $('leaderboard-dialog').close(); closeMenu(); state.keys.clear(); state.fire = false; $('cheat-dialog').showModal(); }
     return;
   }
   if (document.querySelector('dialog[open]')) return;
