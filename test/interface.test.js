@@ -53,6 +53,15 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   browserModule = await import('../public/js/app.js');
   globalThis.setInterval = original.setInterval;
   const get = id => document.getElementById(id);
+  assert.match(get('username').placeholder, /3–16/);
+  get('signin-tab').click();
+  assert.ok(get('auth-card').classList.contains('signin-mode'));
+  assert.equal(get('confirmation-field').hidden, true);
+  assert.equal(get('username').placeholder, '');
+  assert.equal(get('password').placeholder, '');
+  get('register-tab').click();
+  assert.equal(get('auth-card').classList.contains('signin-mode'), false);
+  assert.match(get('username').placeholder, /3–16/);
   assert.ok(frame); frame(performance.now()); assert.ok(drawCalls > 50, 'The procedural home art executes without canvas API errors.');
   get('username').value = 'x'; get('password').value = 'short';
   get('auth-form').dispatchEvent(new window.Event('submit', { cancelable: true }));

@@ -77,17 +77,19 @@ function connectSocket() {
 
 function renderAccount() {
   $('auth-card').hidden = !!state.user; $('lobby-card').hidden = !state.user; $('signout-button').hidden = !state.user;
-  if (state.user) { $('lobby-title').textContent = `Your signal is online, ${state.user.username}.`; renderLobby(); }
+  if (state.user) { $('lobby-title').textContent = `${state.user.username}'s crew`; renderLobby(); }
 }
 
 function renderLobby() {
   if (!state.user) return;
   const { room, queued } = state.lobby;
-  const members = room?.players || [{ id: state.socket?.id, username: state.user.username, color: 'ember', ready: false }];
-  html($('crew-list'), members.map(member => `<div class="crew-member"><div class="crew-avatar ${member.color}">${escape(member.username[0].toUpperCase())}</div><div><span class="crew-name">${escape(member.username)}${member.id === state.socket?.id ? ' <span class="field-hint">/ YOU</span>' : ''}</span><span class="crew-status">${member.color === 'ember' ? 'EMBER SIGNAL' : 'MINT SIGNAL'}</span></div><span class="crew-ready">${member.ready ? 'READY' : room ? 'NOT READY' : 'ONLINE'}</span></div>`).join('') + (members.length === 1 ? `<div class="crew-member crew-empty"><div class="crew-avatar mint">?</div><div><span class="crew-name">${queued ? 'Searching for your partner…' : 'One place beside you.'}</span><span class="crew-status">${queued ? 'WAITING FOR ANOTHER EXPLORER' : 'FIND ANOTHER EXPLORER TO BEGIN'}</span></div></div>` : ''));
+    const members = room?.players || [{ id: state.socket?.id, username: state.user.username, color: 'ember', ready: false }];
+  html($('crew-list'), members.map(member => `<div class="crew-member"><div class="crew-avatar ${member.color}">${escape(member.username[0].toUpperCase())}</div><div><span class="crew-name">${escape(member.username)}${member.id === state.socket?.id ? ' / YOU' : ''}</span></div><span class="crew-ready">${member.ready ? 'READY' : room ? 'NOT READY' : 'ONLINE'}</span></div>`).join('') + (members.length === 1 ? `<div class="crew-member crew-empty"><div class="crew-avatar mint">?</div><div><span class="crew-name">Waiting for a teammate</span></div></div>` : ''));
   $('queue-button').hidden = !!room; $('queue-button').textContent = queued ? 'Cancel search' : 'Find a teammate';
   $('ready-button').hidden = !room; $('leave-room-button').hidden = !room; $('difficulty-section').hidden = !room;
-  $('lobby-description').textContent = room ? 'Agree on a difficulty. Both explorers must be ready.' : queued ? 'Keep this page open. Your partner will appear here.' : 'Find a partner. No one gets out alone.';
+  $('lobby-description').textContent = room ? 'Choose a difficulty, then both players click Ready.' : queued ? 'Keep this page open while we find a teammate.' : '';
+  $('lobby-description').hidden = !room && !queued;
+  $('lobby-footnote').hidden = !!room || queued;
   if (room) {
     const own = room.players.find(p => p.id === state.socket?.id), host = room.host === state.socket?.id;
     $('ready-button').textContent = own?.ready ? 'Ready — waiting for your partner' : 'Ready for expedition';
@@ -120,7 +122,7 @@ function renderGame() {
   html($('player-vitals'), game.players.map(p => `<div class="vital-card ${p.color}"><div class="vital-heading"><span>${escape(p.username)}${p.id === local.id ? ' / YOU' : ''}</span><span>◇ ${p.stones}/8</span></div><div class="vital-bar armor" title="Armor ${p.armor}/${p.maxArmor}"><i style="width:${p.armor / p.maxArmor * 100}%"></i></div><div class="vital-bar health" title="Health ${p.health}/${p.maxHealth}"><i style="width:${p.health / p.maxHealth * 100}%"></i></div><div class="vital-bar mana" title="Mana ${Math.floor(p.mana)}/100"><i style="width:${p.mana}%"></i></div><div class="vital-meta"><span>${p.health <= 0 ? 'DOWNED' : `${p.armor} ARM / ${p.health} HP`}</span><span>${Math.floor(p.mana)} MP</span></div></div>`).join(''));
   html($('skill-rack'), [0, 1, 2].map(slot => {
     const skill = local.skills[slot], spec = SKILLS[skill], remaining = Math.max(0, (local.cooldowns[skill] || 0) - game.elapsed);
-    return `<button class="skill-button ${spec ? '' : 'empty'} ${state.selected === slot ? 'selected' : ''}" data-slot="${slot}" aria-label="Skill slot ${slot + 1}${spec ? ': ' + spec.name : ': locked'}"><kbd>${slot + 1}</kbd><strong>${spec?.name || 'Locked'}</strong><small>${spec ? spec.cost + ' MANA' : 'AWAKEN AN ALTAR'}</small>${remaining > 0 ? `<span class="skill-cooldown">${Math.ceil(remaining)}s</span>` : ''}</button>`;
+    return `<button class="skill-button ${spec ? '' : 'empty'} ${state.selected === slot ? 'selected' : ''}" data-slot="${slot}" aria-label="Skill slot ${slot + 1}${spec ? ': ' + spec.name : ': locked'}"><kbd>${slot + 1}</kbd><strong>${spec?.name || 'Locked'}</strong>${spec ? `<small>${spec.cost} MANA</small>` : ''}${remaining > 0 ? `<span class="skill-cooldown">${Math.ceil(remaining)}s</span>` : ''}</button>`;
   }).join(''));
   $('downed-message').hidden = local.health > 0;
   $('world-message').textContent = local.notice || (performance.now() < state.notificationUntil ? state.notification : '');
@@ -142,18 +144,16 @@ function renderGame() {
 }
 
 function rankingMarkup(records) {
-  if (!records.length) return '<div class="empty-board"><strong>The first clean escape is still out there.</strong>Complete a run without cheats to earn a place here.</div>';
+  if (!records.length) return '<div class="empty-board">No clean victories on this difficulty yet.</div>';
   return `<div class="table-scroll"><table class="data-table"><thead><tr><th>Explorer</th><th>Rank</th><th>Score</th><th>Time</th><th>Kills</th><th>Stones</th><th>Revives</th></tr></thead><tbody>${records.map(r => `<tr class="${r.username === state.user?.username ? 'current-player' : ''}"><td>${escape(r.username)}</td><td>${r.rank}</td><td>${r.score}</td><td>${formatTime(r.elapsed)}</td><td>${r.kills}</td><td>${r.stones}</td><td>${r.rescues}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 function renderResult() {
   const result = state.result;
   if (!result) return;
-  $('result-eyebrow').textContent = result.outcome === 'victory' ? 'EXTRACTION SUCCESSFUL' : result.outcome === 'aborted' ? 'SIGNAL INTERRUPTED' : 'EXPEDITION LOST';
   $('result-title').innerHTML = result.outcome === 'victory' ? 'You made it.<br><em>Together.</em>' : result.outcome === 'aborted' ? 'A signal lost.<br><em>A new beginning.</em>' : 'The light went out.<br><em>Try again, together.</em>';
   $('result-reason').textContent = result.storageError || result.reason;
-  html($('result-meta'), `<span class="tag">${result.difficulty.toUpperCase()}</span><span class="tag">${formatTime(result.elapsed)} ELAPSED</span><span class="tag ${result.cheated ? 'warning' : ''}">${result.cheated ? 'CHEAT RUN / UNRANKED' : result.outcome === 'victory' ? 'CLEAN ESCAPE' : 'NOT RANKED'}</span>`);
-  $('result-ranking-status').textContent = result.cheated ? 'CHEATS USED' : result.outcome === 'victory' ? 'RANKED RUN' : 'UNRANKED';
+  html($('result-meta'), `<span>${result.difficulty.toUpperCase()}</span><span>${formatTime(result.elapsed)} ELAPSED</span><span class="tag ${result.cheated ? 'warning' : ''}">${result.cheated ? 'CHEATS USED · UNRANKED' : result.outcome === 'victory' ? 'RANKED' : 'UNRANKED'}</span>`);
   html($('stats-body'), result.players.map(p => `<tr class="${p.username === state.user?.username ? 'current-player' : ''}"><td>${escape(p.username)}</td><td>${p.score}</td><td>${p.stats.kills}</td><td>${p.stats.stones}</td><td>${Math.round(p.stats.energy)}</td><td>${p.stats.rescues}</td><td>${p.stats.damage}</td></tr>`).join(''));
   $('result-board-difficulty').textContent = result.difficulty.toUpperCase(); html($('result-ranking'), rankingMarkup(result.ranking || []));
   $('restart-button').hidden = result.roomClosed || !state.socket?.connected;
@@ -161,9 +161,12 @@ function renderResult() {
 
 function setAuthMode(register) {
   state.register = register;
+  $('auth-card').classList.toggle('signin-mode', !register);
   $('register-tab').classList.toggle('selected', register); $('register-tab').setAttribute('aria-selected', String(register));
   $('signin-tab').classList.toggle('selected', !register); $('signin-tab').setAttribute('aria-selected', String(!register));
   $('confirmation-field').hidden = !register;
+  $('username').placeholder = register ? '3–16 letters, numbers or underscores' : '';
+  $('password').placeholder = register ? '8–64 characters' : '';
   $('password').autocomplete = register ? 'new-password' : 'current-password';
   $('auth-submit').textContent = register ? 'Create account' : 'Sign in'; $('auth-message').textContent = '';
 }
