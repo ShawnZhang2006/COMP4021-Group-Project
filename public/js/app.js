@@ -18,8 +18,10 @@ function showScene(scene) {
   state.scene = scene;
   for (const id of ['home', 'game', 'result']) $(id + '-view').hidden = id !== scene;
   document.body.classList.toggle('playing', scene === 'game');
+  $('abort-button').hidden = scene !== 'game';
+  $('signout-button').hidden = !state.user || scene === 'game';
   if (scene !== 'game') { state.keys.clear(); state.fire = false; state.selected = null; renderer.target = null; for (const id of ['cheat-dialog', 'skill-dialog', 'leave-dialog', 'menu-dialog']) $(id).close(); }
-  if (scene === 'game') { $('game-canvas').focus({ preventScroll: true }); window.scrollTo(0, 0); }
+  if (scene === 'game') { closeMenu(); $('game-canvas').focus({ preventScroll: true }); window.scrollTo(0, 0); }
 }
 
 async function api(path, body) {
@@ -76,7 +78,7 @@ function connectSocket() {
 }
 
 function renderAccount() {
-  $('auth-card').hidden = !!state.user; $('lobby-card').hidden = !state.user; $('signout-button').hidden = !state.user;
+  $('auth-card').hidden = !!state.user; $('lobby-card').hidden = !state.user; $('signout-button').hidden = !state.user || state.scene === 'game';
   if (state.user) { $('lobby-title').textContent = `${state.user.username}'s crew`; renderLobby(); }
 }
 
@@ -216,7 +218,7 @@ $('queue-button').onclick = async () => {
 $('ready-button').onclick = async () => { try { activateSound(); await request('room:ready'); } catch (error) { $('lobby-message').textContent = error.message; } };
 $('leave-room-button').onclick = () => request('room:leave').catch(error => toast(error.message));
 for (const button of document.querySelectorAll('[data-difficulty]')) button.onclick = () => request('room:difficulty', { difficulty: button.dataset.difficulty }).catch(error => toast(error.message));
-$('manual-button').onclick = openManual; $('learn-button').onclick = openManual; $('game-help-button').onclick = openManual;
+$('learn-button').onclick = openManual; $('game-help-button').onclick = openManual;
 for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => button.closest('dialog').close();
 $('menu-button').onclick = () => { if ($('menu-dialog').open) closeMenu(); else { state.keys.clear(); state.fire = false; $('menu-dialog').showModal(); $('menu-button').setAttribute('aria-expanded', 'true'); } };
 $('menu-dialog').addEventListener('close', () => $('menu-button').setAttribute('aria-expanded', 'false'));

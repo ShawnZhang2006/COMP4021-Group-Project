@@ -5,3 +5,71 @@ dialog{color:var(--text);background:#17241c;border:1px solid #637553;border-radi
 @media(min-width:1600px){.home-view{padding-top:75px}.hero-art{min-height:780px}.playfield{height:calc(100dvh - 345px)}}@media(max-width:1100px){.site-header{padding:0 30px}.home-view{padding:40px 30px 0;gap:0 35px}h1{font-size:64px}.game-facts{gap:14px}.hero-art{min-height:750px}.art-word{font-size:58px;left:22px}.game-view{padding:0 18px 15px}.skill-button{width:105px}.run-status #run-difficulty{display:none}.mission-hud{width:160px;padding:11px}.mission-hud .eyebrow{font-size:8px}.countdown strong{font-size:30px}}
 @media(max-width:760px){.site-header{height:85px;padding:0 20px}.brand{font-size:22px}.brand-sub{font-size:7px}nav{gap:13px}.icon-button{width:40px;height:40px}.home-view{display:flex;flex-direction:column;padding:35px 22px 0}h1{font-size:66px;margin-top:24px}.hero-description{font-size:16px}.hero-art{height:390px;min-height:390px;margin-top:30px;order:2}.art-word{font-size:58px}.access-panel{order:1;margin-top:30px}.menu-dialog{top:72px;right:20px}.manual-grid{grid-template-columns:1fr;gap:0}dialog{padding:22px}.dialog-heading h2{font-size:23px}.game-view{padding:0 10px}.game-topbar{height:85px;gap:8px}.game-topbar h2{font-size:15px}.game-topbar .eyebrow{font-size:7px}.countdown{position:static;transform:none}.countdown span{font-size:7px;letter-spacing:0}.countdown strong{font-size:25px}.run-status{gap:10px}.run-status button{font-size:11px}.playfield{height:calc(100dvh - 300px);min-height:400px}.mission-hud{width:125px;right:8px;top:40px;padding:9px;opacity:.9}.mission-hud>p{font-size:11px;margin-bottom:10px}.mission-hud #minimap{max-height:150px}.minimap-heading,.minimap-legend{display:none}.map-label{left:10px;top:12px;font-size:8px;gap:10px}.game-bottom{flex-wrap:wrap;justify-content:center;gap:13px}.player-vitals{width:100%;justify-content:space-between;min-width:0}.vital-card{width:45%}.skill-rack{width:100%;justify-content:center}.skill-button{flex:1;max-width:150px;min-height:57px}.result-view{padding:32px 20px}.result-heading h1{font-size:56px}.result-meta{flex-wrap:wrap}.section-heading h2{font-size:20px}.result-actions button{min-width:0;flex:1}.data-table td,.data-table th{padding:11px 9px}.skill-options{grid-template-columns:1fr}.skill-option{min-height:120px;padding:15px}.skill-option p{min-height:0}.world-message{max-width:70%;font-size:11px;top:45px;left:36%}.downed-message{left:35%;max-width:60%;padding:15px}.downed-message strong{font-size:12px}.interaction-hint{left:36%;font-size:11px;padding:7px 10px;max-width:65%}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* Keep the home copy and account form level with the illustrated panel. */
+.hero-copy h1{margin-bottom:26px}
+.hero-description{margin-bottom:30px}
+.underlined-button{margin-top:27px}
+.access-panel{margin-top:45px;padding-top:27px}
+.auth-tabs{margin-bottom:23px}
+.form-grid{row-gap:19px}
+.field{gap:9px}
+.form-message:empty{height:16px}
+
+/* The live run occupies the viewport; all run information floats over the world. */
+body.playing{height:100dvh;overflow:hidden}
+body.playing .site-header{height:82px;max-width:none;padding:0 30px}
+.leave-run-button{background:#4b2926;border-color:#a35d4e;color:#ffbaa5}
+.leave-run-button:hover{background:#64332d;border-color:#dc8066;color:#ffe0d2}
+.game-view{max-width:none;height:calc(100dvh - 82px);padding:18px 30px 22px}
+.playfield{height:100%;min-height:0}
+.run-hud{position:absolute;top:16px;left:16px;width:230px;max-width:calc(50% - 26px);padding:15px 16px;background:#111e17e8;border:1px solid #475a43;backdrop-filter:blur(8px);pointer-events:none}
+.run-hud #level-label{display:block;font:10px var(--mono);letter-spacing:1.2px;color:#c2d3bb}
+.run-hud h2{font-size:17px;font-weight:600;line-height:1.25;margin:9px 0 11px}
+.run-hud .countdown{position:static;transform:none;text-align:left;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.run-hud .countdown span{font-size:9px}
+.run-hud .countdown strong{font-size:27px}
+.run-hud .run-status{gap:7px;margin-top:11px;flex-wrap:wrap}
+.run-hud #boss-label{display:block;margin-top:10px;font:9px var(--mono);color:#ff967a}
+.mission-hud{max-height:calc(100% - 32px);overflow-y:auto}
+.game-bottom{position:absolute;left:16px;right:16px;bottom:16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:16px;padding:0;pointer-events:none}
+.player-vitals{grid-column:1;display:flex;gap:12px;width:max-content;min-width:0;padding:12px;background:#111e17e8;border:1px solid #475a43;backdrop-filter:blur(8px)}
+.vital-card{width:134px}
+.skill-rack{grid-column:2;display:flex;gap:6px;width:max-content;padding:8px;background:#111e17e8;border:1px solid #475a43;backdrop-filter:blur(8px);pointer-events:auto}
+.skill-button{width:105px;min-height:60px}
+.interaction-hint{bottom:100px}
+body.playing .menu-dialog{right:30px;top:68px}
+
+@media(max-width:1100px){
+  .run-hud .run-status #run-difficulty{display:inline-block}
+  .game-view{padding:12px 18px 16px}
+  .player-vitals{gap:8px;padding:9px}
+  .vital-card{width:115px}
+  .skill-button{width:92px}
+}
+@media(min-width:761px) and (max-width:900px){
+  .player-vitals{gap:7px;padding:8px}
+  .vital-card{width:96px}
+  .skill-button{width:78px}
+}
+@media(max-width:760px){
+  body.playing .site-header{height:70px;padding:0 12px}
+  .game-view{height:calc(100dvh - 70px);padding:8px}
+  .playfield{height:100%;min-height:0}
+  .run-hud{top:8px;left:8px;width:166px;max-width:calc(100% - 160px);padding:9px}
+  .run-hud #level-label{font-size:8px;letter-spacing:.3px}
+  .run-hud h2{font-size:13px;margin:6px 0}
+  .run-hud .countdown{gap:5px}
+  .run-hud .countdown span{font-size:7px;letter-spacing:0}
+  .run-hud .countdown strong{font-size:20px}
+  .run-hud .run-status{gap:4px;margin-top:6px}
+  .run-hud .tag{font-size:8px;padding:2px 4px}
+  .mission-hud{top:8px;right:8px;width:130px;max-height:calc(100% - 175px);padding:9px}
+  .game-bottom{left:8px;right:8px;bottom:8px;display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .player-vitals{width:100%;justify-content:space-between;gap:10px;padding:8px}
+  .vital-card{width:calc(50% - 5px)}
+  .skill-rack{width:100%;justify-content:center;gap:5px;padding:6px}
+  .skill-button{flex:1;width:auto;max-width:none;min-height:48px;padding:5px 7px}
+  .interaction-hint{bottom:155px}
+  body.playing .menu-dialog{top:58px;right:12px}
+}

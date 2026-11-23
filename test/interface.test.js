@@ -56,7 +56,13 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   browserModule = await import('../public/js/app.js');
   globalThis.setInterval = original.setInterval;
   const get = id => document.getElementById(id);
-  assert.equal(document.querySelectorAll('.site-header nav button').length, 2);
+  assert.equal(document.querySelectorAll('.site-header nav button').length, 4);
+  assert.equal(get('abort-button').hidden, true);
+  assert.equal(get('manual-button'), null);
+  assert.equal(get('game-help-button').getAttribute('aria-label'), 'Field manual and controls');
+  assert.equal(get('sound-button').querySelector('.sound-slash').getAttribute('d'), 'M17 8l5 8M22 8l-5 8');
+  assert.equal(get('player-vitals').closest('.playfield'), get('game-view').querySelector('.playfield'));
+  assert.equal(get('skill-rack').closest('.playfield'), get('game-view').querySelector('.playfield'));
   assert.equal(document.querySelector('.mission-strip'), null);
   assert.equal(window.getComputedStyle(get('learn-button')).backgroundColor, 'rgb(74, 107, 85)');
   assert.match(get('username').placeholder, /3–16/);
@@ -72,7 +78,7 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   get('menu-button').click();
   assert.ok(get('menu-dialog').open);
   assert.equal(get('menu-button').getAttribute('aria-expanded'), 'true');
-  get('manual-button').click();
+  get('game-help-button').click();
   assert.equal(get('menu-dialog').open, false);
   assert.ok(get('manual-dialog').open);
   get('manual-dialog').close();
@@ -101,6 +107,12 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   assert.match(get('crew-list').textContent, /SocketPilot/);
   get('ready-button').click(); partner.emit('room:ready', {});
   await until(() => !get('game-view').hidden);
+  assert.equal(get('abort-button').hidden, false);
+  assert.equal(get('signout-button').hidden, true);
+  assert.equal(window.getComputedStyle(document.body).overflow, 'hidden');
+  get('abort-button').click();
+  assert.ok(get('leave-dialog').open);
+  get('leave-dialog').close();
   frame(performance.now()); assert.ok(drawCalls > 500, 'The world renderer and minimap execute.');
   assert.equal(get('sound-button').getAttribute('aria-pressed'), 'true');
   assert.equal(get('sound-button').getAttribute('aria-label'), 'Sound on');
@@ -132,5 +144,7 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   assert.match(get('result-title').textContent, /Together/); assert.equal(get('skill-dialog').open, false);
   assert.match(get('stats-body').textContent, /WindowPilot/); assert.match(get('result-meta').textContent, /UNRANKED/);
   get('restart-button').click(); await until(() => !get('home-view').hidden && !get('ready-button').hidden);
+  assert.equal(get('abort-button').hidden, true);
+  assert.equal(get('signout-button').hidden, false);
   assert.equal(document.documentElement.lang, 'en'); assert.doesNotMatch(document.body.textContent, /[\u3400-\u9fff]/);
 });
