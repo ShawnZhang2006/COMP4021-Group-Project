@@ -15,7 +15,7 @@ export const ALTARS = [
   { id: 'B2', x: 8.5, y: 22.5, stage: 2, level: 2, name: 'The Hollow Light' },
   { id: 'C3', x: 22.5, y: 37.5, stage: 3, level: 3, name: 'The Last Light' }
 ];
-export const EXIT = { x: 23.5, y: 37.5, radius: 2 };
+export const EXIT = { x: 15, y: 37.5, radius: 2 };
 export const SKILLS = {
   reveal: { name: 'Reveal', cost: 20, cooldown: 8, duration: 4, radius: 6, description: 'Expose hidden enemies for both players.' },
   decoy: { name: 'Decoy', cost: 25, cooldown: 10, duration: 5, radius: 6, description: 'Draw enemies away from an altar or a friend.' },

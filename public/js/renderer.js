@@ -118,7 +118,7 @@ export class Renderer {
       const x = sx(EXIT.x), y = sy(EXIT.y);
       glow(ctx, x, y, 100, '#d6ef9b33'); circle(ctx, x, y, 29 + Math.sin(time * 4), '#b8e4c222', '#ecf5c1');
       ctx.strokeStyle = '#eef3cc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * state.exitProgress); ctx.stroke();
-      ctx.fillStyle = '#f5f5cf'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('EXTRACTION', x, y - 42);
+      ctx.fillStyle = '#f5f5cf'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('EXIT', x, y - 42);
     }
     for (const effect of state.effects) {
       const x = sx(effect.x), y = sy(effect.y), radius = effect.radius * unit;
