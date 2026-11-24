@@ -72,9 +72,9 @@ export class Game {
   }
 
   interact(player) {
-    const downed = this.players.find(p => p.id !== player.id && p.health <= 0 && distance(player, p) <= 1);
+    const downed = this.players.find(p => p.id !== player.id && p.health <= 0 && distance(player, p) <= 2);
     if (downed) return this.notice(player, 'Hold E for 2 seconds to revive your teammate.');
-    const altar = this.altars.filter(a => a.stage <= this.stage && !a.complete && distance(a, player) <= 1)
+    const altar = this.altars.filter(a => a.stage <= this.stage && !a.complete && distance(a, player) <= 2)
       .sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (altar && player.stones > 0) {
       const supplied = Math.min(25, 100 - altar.energy);
@@ -84,7 +84,7 @@ export class Game {
       this.checkAltars();
       return;
     }
-    const nearest = this.stones.filter(s => distance(s, player) <= 1).sort((a, b) => distance(a, player) - distance(b, player))[0];
+    const nearest = this.stones.filter(s => distance(s, player) <= 2).sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (nearest) {
       if (player.stones >= 8) return this.notice(player, 'Your pack is full. Charge an altar or press R.');
       player.stones++;
@@ -201,15 +201,19 @@ export class Game {
       const length = Math.max(1, Math.hypot(input.x, input.y));
       player.angle = input.angle;
       this.move(player, input.x / length * 4 * dt, input.y / length * 4 * dt);
-      const downed = this.players.find(p => p.id !== player.id && p.health <= 0 && distance(p, player) <= 1);
-      if (input.interact && downed && !input.x && !input.y && this.elapsed - player.lastHit > .1) {
-        player.rescueProgress += dt;
-        if (player.rescueProgress >= 2) {
-          downed.health = 1; downed.armor = 0; downed.protectedUntil = this.elapsed + 2;
-          downed.lastHit = this.elapsed; downed.nextRegen = this.elapsed + 7;
-          player.stats.rescues++; player.rescueProgress = 0;
-          this.event('revive', { x: downed.x, y: downed.y, username: downed.username });
+      if (this.stones.length) {
+        const picked = [];
+        for (const stone of this.stones) {
+          if (distance(stone, player) > 1.5) continue;
+          if (player.stones >= 8) {
+            this.notice(player, 'Your pack is full. Charge an altar or press R.');
+            break;
+          }
+          player.stones++;
+          picked.push(stone.id);
+          this.event('pickup', { x: stone.x, y: stone.y });
         }
+        if (picked.length) this.stones = this.stones.filter(s => !picked.includes(s.id));
       } else player.rescueProgress = 0;
       if (input.fire && this.elapsed >= player.nextShot && (this.cheats.infiniteMana || player.mana >= 5)) {
         if (!this.cheats.infiniteMana) player.mana -= 5;
