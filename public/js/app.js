@@ -1,4 +1,4 @@
-import { ALTARS, EXIT, DIFFICULTIES, SKILLS, WIDTH, HEIGHT, distance, levelAt } from '../shared/world.js';
+import { ALTARS, EXIT, INTERACTION_RANGE, REVIVE_DURATION, DIFFICULTIES, SKILLS, WIDTH, HEIGHT, distance, levelAt } from '../shared/world.js';
 import { Renderer, drawHero } from './renderer.js';
 
 const $ = id => document.getElementById(id);
@@ -54,7 +54,7 @@ function connectSocket() {
     socket.on('notice', message => toast(message));
     socket.on('game:started', game => {
       state.game = game; state.result = null; state.selected = null; lastChoiceSignature = ''; renderer.reset();
-      state.notification = 'Find the First Light. Shoot, collect stones with E, then charge A1.'; state.notificationUntil = performance.now() + 5000;
+      state.notification = 'Shoot hidden creatures, walk near their stones to collect them, then press E to charge A1.'; state.notificationUntil = performance.now() + 5000;
       showScene('game'); renderGame();
     });
     socket.on('game:state', game => { state.game = game; if (state.scene === 'game') renderGame(); });
@@ -128,10 +128,10 @@ function renderGame() {
   }).join(''));
   $('downed-message').hidden = local.health > 0;
   $('world-message').textContent = local.notice || (performance.now() < state.notificationUntil ? state.notification : '');
-  const nearDown = game.players.find(p => p.id !== local.id && p.health <= 0 && distance(local, p) <= 1);
-  const nearAltar = local.stones > 0 && game.altars.find(a => a.stage <= game.stage && !a.complete && distance(local, a) <= 1);
-  const nearStone = local.stones < 8 && game.stones.find(s => distance(local, s) <= 1);
-  const hint = nearDown ? `Hold to revive ${nearDown.username} (${local.rescueProgress.toFixed(1)}/2s)` : nearAltar ? `Charge ${nearAltar.id} / use 1 stone` : nearStone ? 'Pick up energy stone' : '';
+  const nearDown = game.players.find(p => p.id !== local.id && p.health <= 0 && distance(local, p) <= INTERACTION_RANGE);
+  const nearAltar = local.stones > 0 && game.altars.find(a => a.stage <= game.stage && !a.complete && distance(local, a) <= INTERACTION_RANGE);
+  const nearStone = local.stones < 8 && game.stones.find(s => distance(local, s) <= INTERACTION_RANGE);
+  const hint = nearDown ? `Hold to revive ${nearDown.username} (${local.rescueProgress.toFixed(1)}/${REVIVE_DURATION}s)` : nearAltar ? `Charge ${nearAltar.id} / use 1 stone` : nearStone ? 'Pick up energy stone' : '';
   $('interaction-hint').hidden = !hint || local.health <= 0; $('interaction-hint').querySelector('span').textContent = hint;
   for (const [id, key] of [['invincible-toggle', 'invincible'], ['mana-toggle', 'infiniteMana']]) { $(id).setAttribute('aria-checked', String(game.cheats[key])); $(id).textContent = game.cheats[key] ? 'On' : 'Off'; }
   const signature = local.skillCredits ? local.skills.join(',') + ':' + local.skillCredits : '';

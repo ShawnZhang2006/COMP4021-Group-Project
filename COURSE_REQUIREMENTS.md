@@ -37,11 +37,11 @@ Additional constraints from page 23: one Node.js game server, primary use of lab
 - [ ] Verify a third account cannot join an existing pair, and a second pair has independent game state.
 - [ ] Start a normal run with both players and check movement, firing, red enemy warnings and synchronized combat.
 - [ ] Hear two distinct sounds during play: firing and altar completion. Verify the sound toggle and field-manual dialog.
-- [ ] Kill creatures, collect stones, spend one on an altar and spend another with R. Check the pack cap and resource counters.
+- [ ] Kill creatures and verify automatic pickup within 1.5 tiles, E pickup within two tiles, the pack cap and contested pickups. Spend a stone on an altar and another with R; confirm the counters.
 - [ ] Verify that both second-stage altars are required, including A2 in level one's return area.
 - [ ] Choose distinct skills, test cooldown/mana errors, reveal shared enemies, use a decoy, suppress enemies and teleport a teammate.
-- [ ] Down one explorer, interrupt a rescue, then complete a two-second rescue. Verify one health and zero initial armor.
-- [ ] Enter level three, see the destroyer wake in level one, and check terrain warnings, removal and player relocation.
+- [ ] Down one explorer, interrupt a rescue, then complete a two-second rescue within two tiles while stones remain elsewhere. Verify one health, zero initial armor and correct HUD prompts.
+- [ ] Enter level three, see the destroyer wake in level one, and check terrain warnings, removal and player relocation. After C3 is full and all ordinary terrain is gone, verify the protected corridor and relocated exit remain walkable.
 - [ ] Finish a clean escape with both living explorers in the final exit. Inspect both statistics and individual rankings.
 - [ ] Lose once by timeout or both players down; inspect the failure reason and statistics.
 - [ ] Open and close the Tab menu without cheating. Then separately enable and disable both switches and test both one-time actions.

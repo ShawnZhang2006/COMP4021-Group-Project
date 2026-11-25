@@ -4,6 +4,9 @@ export const WIDTH = 30;
 export const HEIGHT = 45;
 export const DURATION = 240;
 export const TICK_RATE = 20;
+export const INTERACTION_RANGE = 2;
+export const AUTO_PICKUP_RANGE = 1.5;
+export const REVIVE_DURATION = 2;
 export const DIFFICULTIES = {
   easy: { armor: 10, health: 5, label: 'Easy' },
   normal: { armor: 7, health: 4, label: 'Normal' },
@@ -24,7 +27,16 @@ export const SKILLS = {
 };
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const levelAt = y => Math.min(3, Math.max(1, Math.floor(y / 15) + 1));
-export const safeTile = (x, y) => ALTARS.some(a => Math.hypot(x + .5 - a.x, y + .5 - a.y) <= 2);
+export function safeTile(x, y) {
+  const point = { x: x + .5, y: y + .5 };
+  if (ALTARS.some(altar => distance(point, altar) <= 2) || distance(point, EXIT) <= EXIT.radius) return true;
+  // Keep a walkable corridor between C3 and the relocated exit after collapse.
+  const finalAltar = ALTARS.find(altar => altar.id === 'C3');
+  const dx = EXIT.x - finalAltar.x, dy = EXIT.y - finalAltar.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const along = lengthSquared ? Math.max(0, Math.min(1, ((point.x - finalAltar.x) * dx + (point.y - finalAltar.y) * dy) / lengthSquared)) : 0;
+  return Math.hypot(point.x - finalAltar.x - along * dx, point.y - finalAltar.y - along * dy) <= 1;
+}
 
 export function createMap() {
   return Array.from({ length: WIDTH * HEIGHT }, (_, i) => {

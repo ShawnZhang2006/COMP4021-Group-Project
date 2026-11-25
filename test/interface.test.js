@@ -7,6 +7,7 @@ import { once } from 'node:events';
 import { JSDOM } from 'jsdom';
 import { io as socketClient } from 'socket.io-client';
 import { createApplication } from '../server.js';
+import { EXIT, INTERACTION_RANGE } from '../public/shared/world.js';
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(predicate, timeout = 4000) { for (let t = 0; t < timeout; t += 20) { if (predicate()) return; await delay(20); } assert.fail('The interface did not reach the expected state.'); }
@@ -126,6 +127,16 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   const initial = game.players.find(p => p.username === 'WindowPilot').x;
   await until(() => game.players.find(p => p.username === 'WindowPilot').x > initial);
   document.dispatchEvent(new window.KeyboardEvent('keyup', { key: 'd', bubbles: true })); sendInput();
+  const localPlayer = game.players.find(player => player.username === 'WindowPilot');
+  const firstAltar = game.altars[0];
+  localPlayer.x = firstAltar.x + INTERACTION_RANGE - .25; localPlayer.y = firstAltar.y; localPlayer.stones = 1;
+  await until(() => !get('interaction-hint').hidden && /Charge A1/.test(get('interaction-hint').textContent));
+  document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+  document.dispatchEvent(new window.KeyboardEvent('keyup', { key: 'e', bubbles: true })); sendInput();
+  await until(() => firstAltar.energy > 20);
+  const teammate = game.players.find(player => player.id !== localPlayer.id);
+  teammate.x = localPlayer.x + INTERACTION_RANGE - .25; teammate.y = localPlayer.y; teammate.health = 0;
+  await until(() => !get('interaction-hint').hidden && /Hold to revive/.test(get('interaction-hint').textContent));
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })); assert.ok(get('cheat-dialog').open);
   get('invincible-toggle').click(); await until(() => get('invincible-toggle').getAttribute('aria-checked') === 'true');
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })); assert.equal(get('cheat-dialog').open, false); assert.equal(game.cheats.invincible, true);
@@ -139,7 +150,7 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
   await until(() => get('skill-dialog').open); assert.equal(document.querySelectorAll('[data-choose]').length, 4);
   document.querySelector('[data-choose="reveal"]').click(); await until(() => game.players.find(p => p.username === 'WindowPilot').skills.includes('reveal'));
-  for (const player of game.players) { player.x = 23.5; player.y = 37.5; player.input.x = 0; player.input.y = 0; }
+  for (const player of game.players) { player.x = EXIT.x; player.y = EXIT.y; player.health = Math.max(1, player.health); player.input.x = 0; player.input.y = 0; }
   await until(() => !get('result-view').hidden);
   assert.match(get('result-title').textContent, /Together/); assert.equal(get('skill-dialog').open, false);
   assert.match(get('stats-body').textContent, /WindowPilot/); assert.match(get('result-meta').textContent, /UNRANKED/);

@@ -115,10 +115,13 @@ export class Renderer {
     }
 
     if (state.exitOpen) {
-      const x = sx(EXIT.x), y = sy(EXIT.y);
-      glow(ctx, x, y, 100, '#d6ef9b33'); circle(ctx, x, y, 29 + Math.sin(time * 4), '#b8e4c222', '#ecf5c1');
-      ctx.strokeStyle = '#eef3cc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * state.exitProgress); ctx.stroke();
-      ctx.fillStyle = '#f5f5cf'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('EXIT', x, y - 42);
+      const x = sx(EXIT.x), y = sy(EXIT.y), radius = EXIT.radius * unit;
+      const finalAltar = state.altars.find(altar => altar.id === 'C3');
+      ctx.strokeStyle = '#d6ef9b55'; ctx.lineWidth = 3; ctx.setLineDash([5, 8]);
+      ctx.beginPath(); ctx.moveTo(sx(finalAltar.x), sy(finalAltar.y)); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]);
+      glow(ctx, x, y, radius * 2, '#d6ef9b33'); circle(ctx, x, y, radius, '#b8e4c222', '#ecf5c1');
+      ctx.strokeStyle = '#eef3cc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, radius + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * state.exitProgress); ctx.stroke();
+      ctx.fillStyle = '#f5f5cf'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.fillText('EXIT', x, y - radius - 13);
     }
     for (const effect of state.effects) {
       const x = sx(effect.x), y = sy(effect.y), radius = effect.radius * unit;

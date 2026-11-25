@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { io as client } from 'socket.io-client';
 import { createApplication } from '../server.js';
+import { EXIT } from '../public/shared/world.js';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(predicate, timeout = 3000) { for (let time = 0; time < timeout; time += 20) { if (predicate()) return; await wait(20); } assert.fail('The expected real-time state did not arrive.'); }
@@ -55,7 +56,7 @@ test('HTTP sessions, real WebSocket pairing, isolated rooms, cheats and restart 
   await emit(crew[0].socket, 'game:action', { type: 'cheat', key: 'charge' });
   await until(() => crew[1].state.game.exitOpen);
   const game = app.rooms.rooms.get(firstId).game;
-  for (const player of game.players) { player.x = 23.5; player.y = 37.5; game.receiveInput(player.id, {}); }
+  for (const player of game.players) { player.x = EXIT.x; player.y = EXIT.y; game.receiveInput(player.id, {}); }
   await until(() => crew[0].state.result && crew[1].state.result, 4000);
   assert.equal(crew[0].state.result.outcome, 'victory'); assert.equal(crew[0].state.result.cheated, true);
   assert.equal(crew[0].state.result.ranking.length, 0);

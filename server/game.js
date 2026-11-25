@@ -1,4 +1,4 @@
-import { ALTARS, EXIT, WIDTH, HEIGHT, DURATION, DIFFICULTIES, SKILLS, createMap, canStand, tileOpen, safeTile, levelAt, distance, findPath } from '../public/shared/world.js';
+import { ALTARS, EXIT, WIDTH, HEIGHT, DURATION, INTERACTION_RANGE, AUTO_PICKUP_RANGE, REVIVE_DURATION, DIFFICULTIES, SKILLS, createMap, canStand, tileOpen, safeTile, levelAt, distance, findPath } from '../public/shared/world.js';
 
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -72,9 +72,9 @@ export class Game {
   }
 
   interact(player) {
-    const downed = this.players.find(p => p.id !== player.id && p.health <= 0 && distance(player, p) <= 2);
+    const downed = this.players.find(p => p.id !== player.id && p.health <= 0 && distance(player, p) <= INTERACTION_RANGE);
     if (downed) return this.notice(player, 'Hold E for 2 seconds to revive your teammate.');
-    const altar = this.altars.filter(a => a.stage <= this.stage && !a.complete && distance(a, player) <= 2)
+    const altar = this.altars.filter(a => a.stage <= this.stage && !a.complete && distance(a, player) <= INTERACTION_RANGE)
       .sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (altar && player.stones > 0) {
       const supplied = Math.min(25, 100 - altar.energy);
@@ -84,7 +84,7 @@ export class Game {
       this.checkAltars();
       return;
     }
-    const nearest = this.stones.filter(s => distance(s, player) <= 2).sort((a, b) => distance(a, player) - distance(b, player))[0];
+    const nearest = this.stones.filter(s => distance(s, player) <= INTERACTION_RANGE).sort((a, b) => distance(a, player) - distance(b, player))[0];
     if (nearest) {
       if (player.stones >= 8) return this.notice(player, 'Your pack is full. Charge an altar or press R.');
       player.stones++;
@@ -171,7 +171,7 @@ export class Game {
     if (player.health <= 0 || this.cheats.invincible || player.protectedUntil > this.elapsed) return;
     if (player.armor > 0) player.armor--;
     else player.health--;
-    player.stats.damage++; player.lastHit = this.elapsed;
+    player.stats.damage++; player.lastHit = this.elapsed; player.rescueProgress = 0;
     player.protectedUntil = this.elapsed + 1;
     player.nextRegen = this.elapsed + 7;
     this.event('hit', { x: player.x, y: player.y, color: player.color });
@@ -181,6 +181,34 @@ export class Game {
   move(entity, dx, dy, radius = .26) {
     if (canStand(this.map, entity.x + dx, entity.y, this.stage, this.destroyed, radius)) entity.x += dx;
     if (canStand(this.map, entity.x, entity.y + dy, this.stage, this.destroyed, radius)) entity.y += dy;
+  }
+
+  updateRescue(player, input, dt) {
+    const downed = this.players.find(other => other.id !== player.id && other.health <= 0 && distance(player, other) <= INTERACTION_RANGE);
+    if (!input.interact || !downed || input.x || input.y || this.elapsed - player.lastHit <= .1) {
+      player.rescueProgress = 0;
+      return;
+    }
+    player.rescueProgress += dt;
+    if (player.rescueProgress + 1e-9 < REVIVE_DURATION) return;
+    downed.health = 1; downed.armor = 0; downed.protectedUntil = this.elapsed + 2;
+    downed.lastHit = this.elapsed; downed.nextRegen = this.elapsed + 7;
+    player.stats.rescues++; player.rescueProgress = 0;
+    this.event('revive', { x: downed.x, y: downed.y, username: downed.username });
+  }
+
+  pickupNearbyStones(player) {
+    const picked = new Set();
+    for (const stone of this.stones) {
+      if (distance(stone, player) > AUTO_PICKUP_RANGE) continue;
+      if (player.stones >= 8) {
+        this.notice(player, 'Your pack is full. Charge an altar or press R.');
+        break;
+      }
+      player.stones++; picked.add(stone.id);
+      this.event('pickup', { x: stone.x, y: stone.y });
+    }
+    if (picked.size) this.stones = this.stones.filter(stone => !picked.has(stone.id));
   }
 
   update(dt) {
@@ -201,20 +229,8 @@ export class Game {
       const length = Math.max(1, Math.hypot(input.x, input.y));
       player.angle = input.angle;
       this.move(player, input.x / length * 4 * dt, input.y / length * 4 * dt);
-      if (this.stones.length) {
-        const picked = [];
-        for (const stone of this.stones) {
-          if (distance(stone, player) > 1.5) continue;
-          if (player.stones >= 8) {
-            this.notice(player, 'Your pack is full. Charge an altar or press R.');
-            break;
-          }
-          player.stones++;
-          picked.push(stone.id);
-          this.event('pickup', { x: stone.x, y: stone.y });
-        }
-        if (picked.length) this.stones = this.stones.filter(s => !picked.includes(s.id));
-      } else player.rescueProgress = 0;
+      this.updateRescue(player, input, dt);
+      this.pickupNearbyStones(player);
       if (input.fire && this.elapsed >= player.nextShot && (this.cheats.infiniteMana || player.mana >= 5)) {
         if (!this.cheats.infiniteMana) player.mana -= 5;
         player.nextShot = this.elapsed + .25;

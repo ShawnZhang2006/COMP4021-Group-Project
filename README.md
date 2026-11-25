@@ -23,16 +23,16 @@ Open **http://localhost:8000** in **two different browsers or two separate brows
 
 ## How to play
 
-1. **Level one: A1.** Kill creatures and press E near their stones to collect them. Carry stones to A1 and press E to charge it. A1 unlocks level two and the first skill choice.
+1. **Level one: A1.** Kill creatures and walk within 1.5 tiles of their stones to collect them automatically. E can also collect a stone within two tiles. Carry stones to A1 and press E to charge it. A1 unlocks level two and the first skill choice.
 2. **Levels one and two: A2 + B2.** Charge the newly unlocked A2 in the first level and B2 in the second. Split up or stay together. Enemies now attack unfinished altars. Both altars must be full to unlock level three and the second skill choice.
 3. **Level three: C3.** The first explorer to enter level three awakens the destroyer in level one. It progressively destroys the map. Charge C3 to open the final exit and choose the third skill.
-4. **Extract together.** Both living explorers must stand inside the exit ring next to C3 for two uninterrupted seconds before the timer reaches zero.
+4. **Extract together.** Follow the protected route from C3 to the relocated exit. Both living explorers must stand inside its ring for two uninterrupted seconds before the timer reaches zero.
 
 An altar holds 100 energy. Each stone supplies 25 energy; unfinished altars lose one energy per second and another ten on each enemy hit. Completed altars stay full. A pack holds eight stones. Alternatively, press R to consume a carried stone and restore 40 mana. A stone cannot be used for both purposes.
 
 You lose when both explorers are down, the timer expires, or all destructible terrain is gone while C3 is unfinished. World collapse is an explicit failure condition even when stones remain in a pack. If C3 is already full, the protected exit survives, but both explorers still need to reach it within the time limit.
 
-Armor absorbs a hit before health is affected. After five seconds without damage, armor starts recovering one layer every two seconds. Health does not regenerate. Hold E next to a downed teammate for two uninterrupted seconds to revive them with one health, no armor and two seconds of protection.
+Armor absorbs a hit before health is affected. After five seconds without damage, armor starts recovering one layer every two seconds. Health does not regenerate. Hold E within two tiles of a downed teammate for two uninterrupted seconds to revive them with one health, no armor and two seconds of protection.
 
 ## Controls
 
@@ -40,7 +40,7 @@ Armor absorbs a hit before health is affected. After five seconds without damage
 | --- | --- |
 | W / A / S / D | Move in eight directions; diagonal speed is normalized. |
 | Mouse / left button | Aim and shoot energy bolts. Hold to continue firing. |
-| E | Pick up one stone or deposit one carried stone; hold to revive. |
+| E | Within two tiles: deposit one stone, hold to revive, or pick up one stone manually. |
 | R | Consume one carried stone to restore 40 mana. |
 | 1 / 2 / 3 | Select a skill slot, then click intact ground to cast. |
 | Shift while casting Teleport | Teleport a teammate within two tiles instead of yourself. |
@@ -48,7 +48,7 @@ Armor absorbs a hit before health is affected. After five seconds without damage
 | Esc | Cancel skill targeting or close an ordinary dialog. |
 | Tab | Open or close cheat controls during gameplay. |
 
-E prioritizes an eligible revival, then an eligible altar deposit, then a stone pickup. An empty pack or completed altar does not block pickup. The current eligible action appears near the bottom of the world view.
+Stones are collected automatically within 1.5 tiles, up to the eight-stone pack limit, independently of rescue progress. E works within two tiles and prioritizes an eligible revival, then an altar deposit, then a manual stone pickup. An empty pack or completed altar does not block pickup. Client hints and server checks use the same shared interaction range.
 
 Skill selection and all menus keep the game clock running. A choice is assigned automatically after eight seconds. Each explorer chooses separately and cannot own the same skill twice.
 
@@ -119,7 +119,7 @@ npm run check
 npm test
 ```
 
-Tests exercise the real game simulation, JSON persistence, password validation, authenticated HTTP requests and actual WebSocket connections. Integration tests start a temporary server on an available local port and use temporary data directories. They cover room isolation, pairing, ready checks, synchronized movement, cheats, restart and disconnect handling. They do not overwrite the submitted empty data files.
+Tests exercise the real game simulation, JSON persistence, password validation, authenticated HTTP requests and actual WebSocket connections. Integration tests start a temporary server on an available local port and use temporary data directories. They cover room isolation, pairing, ready checks, synchronized movement, cheats, restart and disconnect handling. Regression checks cover rescue alongside automatic pickup, two-tile HUD prompts, pack limits, and a walkable escape route after complete world destruction. They do not overwrite the submitted empty data files.
 
 A deterministic server-side bot playthrough also checks full uncheated victories on all three difficulties using legal movement, combat, resource, progression and skill actions. Those bots know entity positions; their completion times demonstrate mechanical reachability and do not establish human playtime or difficulty balance.
 

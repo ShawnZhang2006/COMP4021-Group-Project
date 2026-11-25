@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../server/game.js';
-import { ALTARS, EXIT, WIDTH, createMap, findPath, tileOpen } from '../public/shared/world.js';
+import { ALTARS, EXIT, WIDTH, INTERACTION_RANGE, AUTO_PICKUP_RANGE, REVIVE_DURATION, canStand, distance, safeTile, createMap, findPath, tileOpen } from '../public/shared/world.js';
 
 const users = [{ id: 'one', username: 'ExplorerOne' }, { id: 'two', username: 'ExplorerTwo' }];
 const create = difficulty => { const game = new Game(users, difficulty); game.nextSpawn = Infinity; return game; };
@@ -39,6 +39,28 @@ test('mana absorption consumes exactly one stone and full mana consumes none', (
   assert.equal(player.mana, 100); assert.equal(player.stones, 1);
 });
 
+test('automatic pickup respects range and pack capacity without duplicating stones', () => {
+  const game = create(), [first, second] = game.players;
+  second.x = first.x; second.y = first.y; first.stones = 7;
+  game.stones = [
+    { id: 101, x: first.x + .4, y: first.y },
+    { id: 102, x: first.x + .5, y: first.y },
+    { id: 103, x: first.x + AUTO_PICKUP_RANGE + .1, y: first.y }
+  ];
+  game.update(.05);
+  assert.equal(first.stones, 8); assert.equal(second.stones, 1);
+  assert.deepEqual(game.stones.map(stone => stone.id), [103]);
+  assert.equal(game.events.filter(event => event.type === 'pickup').length, 2);
+});
+
+test('altar interaction works within the shared two-tile range and rejects farther targets', () => {
+  const game = create(), player = game.players[0], altar = game.altars[0];
+  player.stones = 2; player.x = altar.x + INTERACTION_RANGE + .1; player.y = altar.y;
+  game.action(player.id, { type: 'interact' }); assert.equal(altar.energy, 0); assert.equal(player.stones, 2);
+  player.x = altar.x + INTERACTION_RANGE - .1;
+  game.action(player.id, { type: 'interact' }); assert.equal(altar.energy, 25); assert.equal(player.stones, 1);
+});
+
 test('both second-stage altars are required and completed altars stay locked', () => {
   const game = create(); charge(game, 'A1'); assert.equal(game.stage, 2);
   charge(game, 'B2'); assert.equal(game.stage, 2);
@@ -56,6 +78,29 @@ test('revival takes two uninterrupted seconds and does not restore armor', () =>
   rescuer.x = downed.x - .5;
   advance(game, 1.9, input); assert.equal(downed.health, 0);
   advance(game, .2, input); assert.equal(downed.health, 1); assert.equal(downed.armor, 0); assert.equal(rescuer.stats.rescues, 1);
+});
+
+test('rescue and automatic pickup run independently when other stones remain on the map', () => {
+  const game = create(), [rescuer, downed] = game.players;
+  downed.health = 0; downed.armor = 0; downed.x = rescuer.x + INTERACTION_RANGE - .25; downed.y = rescuer.y;
+  game.stones = [{ id: 110, x: rescuer.x + .4, y: rescuer.y }, { id: 111, x: 25.5, y: 11.5 }];
+  const input = () => game.receiveInput(rescuer.id, { interact: true });
+  advance(game, REVIVE_DURATION - .1, input);
+  assert.equal(downed.health, 0); assert.equal(rescuer.stones, 1); assert.equal(game.stones.length, 1);
+  advance(game, .2, input);
+  assert.equal(downed.health, 1); assert.equal(downed.armor, 0); assert.equal(rescuer.stats.rescues, 1);
+});
+
+test('damage and leaving rescue range each require a fresh uninterrupted rescue', () => {
+  const game = create(), [rescuer, downed] = game.players;
+  downed.health = 0; downed.x = rescuer.x + .5; downed.y = rescuer.y;
+  const input = () => game.receiveInput(rescuer.id, { interact: true });
+  advance(game, 1, input); game.hit(rescuer); assert.equal(rescuer.rescueProgress, 0);
+  advance(game, .15, () => game.receiveInput(rescuer.id, {}));
+  advance(game, 1, input); assert.equal(downed.health, 0);
+  downed.x = rescuer.x + INTERACTION_RANGE + .1; game.receiveInput(rescuer.id, { interact: true }); game.update(.05);
+  assert.equal(rescuer.rescueProgress, 0);
+  downed.x = rescuer.x + .5; advance(game, REVIVE_DURATION + .1, input); assert.equal(downed.health, 1);
 });
 
 test('teleport validates mana, cooldown, unlocked ground and nearby teammate', () => {
@@ -94,7 +139,7 @@ test('a normal run requires both living players to stay at the exit', () => {
   game.players[1].x = EXIT.x; game.players[1].y = EXIT.y; game.players[1].health = 0;
   advance(game, 2.1); assert.equal(game.result, null);
   game.players[1].health = 1; advance(game, 1); assert.equal(game.result, null);
-  game.players[0].x -= 2; game.update(.05); assert.equal(game.exitProgress, 0);
+  game.players[0].x -= EXIT.radius + .5; game.update(.05); assert.equal(game.exitProgress, 0);
   game.players[0].x = EXIT.x; advance(game, 2.1);
   assert.equal(game.result.outcome, 'victory'); assert.equal(game.result.cheated, false);
 });
@@ -105,6 +150,27 @@ test('world collapse is terminal with C3 unfinished even if stones remain', () =
   advance(game, 71);
   assert.equal(game.result.outcome, 'defeat'); assert.match(game.result.reason, /collapsed/);
   assert.equal(game.players[0].stones, 8);
+});
+
+test('the relocated exit and a walkable route from C3 survive complete world destruction', () => {
+  const game = create(), finalAltar = game.altars.find(altar => altar.id === 'C3');
+  game.stage = 3; game.exitOpen = true;
+  for (const altar of game.altars) { altar.complete = true; altar.energy = 100; }
+  for (const player of game.players) { player.x = finalAltar.x; player.y = finalAltar.y; }
+  game.spawnBoss(); advance(game, 71);
+  assert.equal(game.boss.index, game.boss.path.length); assert.equal(game.result, null);
+  assert.ok(safeTile(Math.floor(EXIT.x), Math.floor(EXIT.y)));
+  assert.ok(canStand(game.map, EXIT.x, EXIT.y, game.stage, game.destroyed));
+  const route = findPath(game.map, finalAltar, EXIT, game.stage, game.destroyed);
+  assert.ok(route.length > 0); assert.ok(route.every(point => canStand(game.map, point.x, point.y, game.stage, game.destroyed)));
+  advance(game, 10, () => {
+    for (const player of game.players) {
+      const next = findPath(game.map, player, EXIT, game.stage, game.destroyed)[0];
+      const length = next ? distance(player, next) : 0;
+      game.receiveInput(player.id, !next || distance(player, EXIT) < EXIT.radius * .5 || length < .01 ? {} : { x: (next.x - player.x) / length, y: (next.y - player.y) / length });
+    }
+  });
+  assert.equal(game.result?.outcome, 'victory'); assert.equal(game.result.cheated, false);
 });
 
 test('the timer ends the game at four minutes', () => {
