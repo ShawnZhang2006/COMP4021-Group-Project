@@ -41,11 +41,11 @@ Additional constraints from page 23: one Node.js game server, primary use of lab
 - [ ] Verify that both second-stage altars are required, including A2 in level one's return area.
 - [ ] Choose distinct skills, test cooldown/mana errors, reveal shared enemies, use a decoy, suppress enemies and teleport a teammate.
 - [ ] Down one explorer, interrupt a rescue, then complete a two-second rescue within two tiles while stones remain elsewhere. Verify one health, zero initial armor and correct HUD prompts.
-- [ ] Enter level three, see the destroyer wake in level one, and check terrain warnings, removal and player relocation. After C3 is full and all ordinary terrain is gone, verify the protected corridor and relocated exit remain walkable.
+- [ ] Enter level three, see the destroyer wake in level one, and check terrain warnings, removal and player relocation. Verify the protected corridor and relocated exit remain walkable during destruction. In clean runs, verify complete destruction immediately ends the run in defeat with C3 unfinished and with C3 full, including when extraction is nearly complete.
 - [ ] Finish a clean escape with both living explorers in the final exit. Inspect both statistics and individual rankings.
 - [ ] Lose once by timeout or both players down; inspect the failure reason and statistics.
 - [ ] Open and close the Tab menu without cheating. Then separately enable and disable both switches and test both one-time actions.
-- [ ] Complete a cheated run and confirm it does not enter the formal leaderboard, even after switching cheats off.
+- [ ] For each cheat, verify the last destructible tile is preserved and assistance completes an escape before full destruction, on timeout or when both explorers are down. Verify the guarantee remains after switches are turned off, but a new run resets it. Confirm these victories do not enter the formal leaderboard.
 - [ ] Restart the pair and confirm all entities, resources, map damage, skills, clocks, stats and cheats reset.
 - [ ] Leave or disconnect in a live run and confirm the other explorer receives an unranked interruption result.
 - [ ] Check desktop layout, keyboard focus and English text in every view. Human balance testing remains required for all difficulties.

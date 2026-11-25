@@ -30,7 +30,7 @@ Open **http://localhost:8000** in **two different browsers or two separate brows
 
 An altar holds 100 energy. Each stone supplies 25 energy; unfinished altars lose one energy per second and another ten on each enemy hit. Completed altars stay full. A pack holds eight stones. Alternatively, press R to consume a carried stone and restore 40 mana. A stone cannot be used for both purposes.
 
-You lose when both explorers are down, the timer expires, or all destructible terrain is gone while C3 is unfinished. World collapse is an explicit failure condition even when stones remain in a pack. If C3 is already full, the protected exit survives, but both explorers still need to reach it within the time limit.
+In a clean run, you lose immediately when both explorers are down, the timer expires, or all destructible terrain is gone. World collapse ends the run even if C3 is fully charged, both explorers are standing at the exit, or stones remain in a pack. Complete the two-second extraction before the final tile is destroyed and before the four-minute limit. Cheated runs use the guaranteed escape assistance described below.
 
 Armor absorbs a hit before health is affected. After five seconds without damage, armor starts recovering one layer every two seconds. Health does not regenerate. Hold E within two tiles of a downed teammate for two uninterrupted seconds to revive them with one health, no armor and two seconds of protection.
 
@@ -71,12 +71,14 @@ Skill selection and all menus keep the game clock running. A choice is assigned 
 
 Press **Tab during gameplay**. Controls affect both explorers in that room:
 
-- **Invincibility:** an independent on/off switch. It prevents damage, but does not stop the clock or cancel the world-collapse rule.
+- **Invincibility:** an independent on/off switch. It prevents damage while enabled.
 - **Infinite mana:** an independent on/off switch. Skill cooldowns and ordinary firing intervals remain.
 - **Restore both explorers:** a one-time full restore, including revival.
 - **Instantly charge this stage:** a one-time completion of the current stage's unfinished altars. At stage two it fills both A2 and B2 across levels; at stage three it fills C3 and opens the exit.
 
 Closing the menu does **not** disable active effects. Toggle each switch off to disable it. One-time actions are not rolled back. A new run resets all cheat settings and game state. Merely opening the menu does not count as cheating, but using any cheat permanently marks that run as unranked, even after toggling the effect off.
+
+Using any cheat also enables guaranteed escape assistance for the rest of that run. The last destructible tile is preserved. Before that tile would disappear, or if the timer expires or both explorers go down, assistance fills all altars, restores both explorers, moves them to the exit and completes extraction immediately. This automatic extraction bypasses the usual two-second wait and remains enabled after switches are turned off. Cheated victories never enter the leaderboard. Leaving or disconnecting still aborts the session.
 
 For a quick complete demonstration, enable invincibility, charge the first two stages, choose Teleport for a newly available slot, jump to C3 on the minimap, charge the final stage and have both explorers enter the exit ring. The normal game, skill choices, destroyer and final statistics still run.
 
@@ -119,7 +121,7 @@ npm run check
 npm test
 ```
 
-Tests exercise the real game simulation, JSON persistence, password validation, authenticated HTTP requests and actual WebSocket connections. Integration tests start a temporary server on an available local port and use temporary data directories. They cover room isolation, pairing, ready checks, synchronized movement, cheats, restart and disconnect handling. Regression checks cover rescue alongside automatic pickup, two-tile HUD prompts, pack limits, and a walkable escape route after complete world destruction. They do not overwrite the submitted empty data files.
+Tests exercise the real game simulation, JSON persistence, password validation, authenticated HTTP requests and actual WebSocket connections. Integration tests start a temporary server on an available local port and use temporary data directories. They cover room isolation, pairing, ready checks, synchronized movement, cheats, restart and disconnect handling. Regression checks cover rescue alongside automatic pickup, two-tile HUD prompts, pack limits, a walkable escape route before complete world destruction, immediate clean-run collapse defeat even with C3 full, and guaranteed unranked cheat escapes with the final tile preserved. They do not overwrite the submitted empty data files.
 
 A deterministic server-side bot playthrough also checks full uncheated victories on all three difficulties using legal movement, combat, resource, progression and skill actions. Those bots know entity positions; their completion times demonstrate mechanical reachability and do not establish human playtime or difficulty balance.
 

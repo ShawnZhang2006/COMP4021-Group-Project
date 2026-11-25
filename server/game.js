@@ -353,6 +353,7 @@ export class Game {
     const slow = this.effects.some(e => e.type === 'suppress' && distance(e, boss) <= e.radius) ? .75 : 1;
     boss.progress += dt * slow;
     while (boss.progress >= boss.interval && boss.index < boss.path.length) {
+      if (this.everCheated && boss.index === boss.path.length - 1) return this.assistedEscape();
       boss.progress -= boss.interval;
       const index = boss.path[boss.index++];
       boss.x = index % WIDTH + .5; boss.y = Math.floor(index / WIDTH) + .5;
@@ -364,7 +365,7 @@ export class Game {
     this.enemies = this.enemies.filter(e => !this.destroyed.has(Math.floor(e.y) * WIDTH + Math.floor(e.x)));
     this.stones = this.stones.filter(s => !this.destroyed.has(Math.floor(s.y) * WIDTH + Math.floor(s.x)));
     for (const player of this.players) if (distance(player, boss) < .9) this.hit(player);
-    if (boss.index >= boss.path.length && !this.exitOpen) this.finish('defeat', 'The world collapsed before the Last Light was charged.');
+    if (boss.index >= boss.path.length) this.finish('defeat', 'The world collapsed before both explorers escaped.');
   }
 
   relocate(player) {
@@ -377,8 +378,23 @@ export class Game {
     if (target) { player.x = target.x; player.y = target.y; }
   }
 
+  assistedEscape() {
+    if (this.result || !this.everCheated) return this.result;
+    this.stage = 3;
+    for (const altar of this.altars) { altar.energy = 100; altar.complete = true; }
+    this.exitOpen = true;
+    this.exitProgress = 2;
+    for (const player of this.players) {
+      player.health = player.maxHealth; player.armor = player.maxArmor;
+      player.x = EXIT.x; player.y = EXIT.y;
+      player.input = cleanInput({}); player.rescueProgress = 0;
+    }
+    return this.finish('victory', 'Cheat assistance brought both explorers safely to the exit.');
+  }
+
   finish(outcome, reason) {
     if (this.result) return this.result;
+    if (outcome === 'defeat' && this.everCheated) return this.assistedEscape();
     const elapsed = Math.min(DURATION, this.elapsed);
     this.result = {
       outcome, reason, elapsed: Math.round(elapsed * 100) / 100, difficulty: this.difficulty, cheated: this.everCheated,

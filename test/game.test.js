@@ -152,13 +152,77 @@ test('world collapse is terminal with C3 unfinished even if stones remain', () =
   assert.equal(game.players[0].stones, 8);
 });
 
-test('the relocated exit and a walkable route from C3 survive complete world destruction', () => {
+test('world collapse ends a clean fully charged run before extraction completes on the same tick', () => {
+  const game = create();
+  game.stage = 3; game.exitOpen = true;
+  for (const altar of game.altars) { altar.complete = true; altar.energy = 100; }
+  for (const player of game.players) { player.x = EXIT.x; player.y = EXIT.y; player.stones = 8; }
+  game.spawnBoss();
+  game.boss.index = game.boss.path.length - 1;
+  game.destroyed = new Set(game.boss.path.slice(0, -1));
+  game.boss.interval = .05;
+  game.exitProgress = 1.99;
+  assert.equal(game.result, null);
+  game.update(.05);
+  assert.equal(game.boss.index, game.boss.path.length);
+  assert.equal(game.result?.outcome, 'defeat');
+  assert.match(game.result.reason, /world collapsed/i);
+  assert.equal(game.result.cheated, false);
+  assert.ok(game.players.every(player => player.health > 0 && player.stones === 8));
+  const elapsed = game.elapsed;
+  game.update(1);
+  assert.equal(game.elapsed, elapsed);
+  assert.equal(game.result.outcome, 'defeat');
+});
+
+for (const key of ['invincible', 'infiniteMana', 'restore', 'charge']) test(`${key} guarantees escape and preserves the last destructible tile, even after switches are disabled`, () => {
+  const game = create();
+  game.action('one', { type: 'cheat', key, enabled: true });
+  game.action('one', { type: 'cheat', key, enabled: false });
+  game.stage = 3;
+  game.spawnBoss();
+  game.boss.index = game.boss.path.length - 1;
+  game.destroyed = new Set(game.boss.path.slice(0, -1));
+  const lastTile = game.boss.path.at(-1);
+  game.update(1);
+  assert.equal(game.result?.outcome, 'victory');
+  assert.equal(game.result.cheated, true);
+  assert.equal(game.destroyed.has(lastTile), false);
+  assert.equal(game.boss.index, game.boss.path.length - 1);
+  assert.ok(game.altars.every(altar => altar.complete));
+  assert.ok(game.players.every(player => player.health > 0 && distance(player, EXIT) <= EXIT.radius));
+  assert.match(game.result.reason, /Cheat assistance/);
+});
+
+for (const failure of ['timeout', 'both down']) test(`cheat assistance completes an escape on ${failure}`, () => {
+  const game = create();
+  game.action('one', { type: 'cheat', key: 'infiniteMana', enabled: true });
+  if (failure === 'timeout') game.elapsed = 239.99;
+  else for (const player of game.players) player.health = 0;
+  game.update(.05);
+  assert.equal(game.result?.outcome, 'victory');
+  assert.equal(game.result.cheated, true);
+  assert.ok(game.players.every(player => player.health > 0 && distance(player, EXIT) <= EXIT.radius));
+});
+
+test('unused cheat controls do not protect a clean run, and leaving still aborts a cheated run', () => {
+  const clean = create();
+  clean.action('one', { type: 'cheat', key: 'invincible', enabled: false });
+  clean.elapsed = 239.99; clean.update(.05);
+  assert.equal(clean.result?.outcome, 'defeat'); assert.equal(clean.result.cheated, false);
+  const cheated = create();
+  cheated.action('one', { type: 'cheat', key: 'restore' });
+  cheated.finish('aborted', 'An explorer disconnected.');
+  assert.equal(cheated.result.outcome, 'aborted');
+});
+
+test('the relocated exit and route from C3 allow escape before complete world destruction', () => {
   const game = create(), finalAltar = game.altars.find(altar => altar.id === 'C3');
   game.stage = 3; game.exitOpen = true;
   for (const altar of game.altars) { altar.complete = true; altar.energy = 100; }
   for (const player of game.players) { player.x = finalAltar.x; player.y = finalAltar.y; }
-  game.spawnBoss(); advance(game, 71);
-  assert.equal(game.boss.index, game.boss.path.length); assert.equal(game.result, null);
+  game.spawnBoss(); advance(game, 60);
+  assert.ok(game.boss.index < game.boss.path.length); assert.equal(game.result, null);
   assert.ok(safeTile(Math.floor(EXIT.x), Math.floor(EXIT.y)));
   assert.ok(canStand(game.map, EXIT.x, EXIT.y, game.stage, game.destroyed));
   const route = findPath(game.map, finalAltar, EXIT, game.stage, game.destroyed);
@@ -171,6 +235,7 @@ test('the relocated exit and a walkable route from C3 survive complete world des
     }
   });
   assert.equal(game.result?.outcome, 'victory'); assert.equal(game.result.cheated, false);
+  assert.ok(game.boss.index < game.boss.path.length);
 });
 
 test('the timer ends the game at four minutes', () => {
