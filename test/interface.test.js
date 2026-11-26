@@ -150,8 +150,14 @@ test('English interface connects forms, lobby, cheat switches, canvas drawing an
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
   await until(() => get('skill-dialog').open); assert.equal(document.querySelectorAll('[data-choose]').length, 4);
   document.querySelector('[data-choose="reveal"]').click(); await until(() => game.players.find(p => p.username === 'WindowPilot').skills.includes('reveal'));
-  for (const player of game.players) { player.x = EXIT.x; player.y = EXIT.y; player.health = Math.max(1, player.health); player.input.x = 0; player.input.y = 0; }
+  game.elapsed = 239.99;
+  await until(() => game.assistanceRemaining > 0 && /CHEAT RESCUE/.test(get('world-message').textContent));
+  const presentationStarted = performance.now();
+  assert.equal(get('game-view').hidden, false);
+  assert.equal(get('result-view').hidden, true);
+  assert.ok(game.players.every(player => Math.hypot(player.x - EXIT.x, player.y - EXIT.y) <= EXIT.radius));
   await until(() => !get('result-view').hidden);
+  assert.ok(performance.now() - presentationStarted >= 1700, 'The teleported players remain visible before the results screen.');
   assert.match(get('result-title').textContent, /Together/); assert.equal(get('skill-dialog').open, false);
   assert.match(get('stats-body').textContent, /WindowPilot/); assert.match(get('result-meta').textContent, /UNRANKED/);
   get('restart-button').click(); await until(() => !get('home-view').hidden && !get('ready-button').hidden);

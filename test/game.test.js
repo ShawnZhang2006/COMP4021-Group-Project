@@ -185,12 +185,20 @@ for (const key of ['invincible', 'infiniteMana', 'restore', 'charge']) test(`${k
   game.destroyed = new Set(game.boss.path.slice(0, -1));
   const lastTile = game.boss.path.at(-1);
   game.update(1);
-  assert.equal(game.result?.outcome, 'victory');
-  assert.equal(game.result.cheated, true);
+  assert.equal(game.result, null);
+  assert.equal(game.snapshot().assistancePending, true);
   assert.equal(game.destroyed.has(lastTile), false);
   assert.equal(game.boss.index, game.boss.path.length - 1);
   assert.ok(game.altars.every(altar => altar.complete));
   assert.ok(game.players.every(player => player.health > 0 && distance(player, EXIT) <= EXIT.radius));
+  const position = { x: game.players[0].x, y: game.players[0].y };
+  game.receiveInput('one', { x: 1, y: 1 });
+  game.update(1.9);
+  assert.equal(game.result, null);
+  assert.deepEqual({ x: game.players[0].x, y: game.players[0].y }, position);
+  game.update(.2);
+  assert.equal(game.result?.outcome, 'victory');
+  assert.equal(game.result.cheated, true);
   assert.match(game.result.reason, /Cheat assistance/);
 });
 
@@ -200,6 +208,9 @@ for (const failure of ['timeout', 'both down']) test(`cheat assistance completes
   if (failure === 'timeout') game.elapsed = 239.99;
   else for (const player of game.players) player.health = 0;
   game.update(.05);
+  assert.equal(game.result, null);
+  assert.equal(game.snapshot().assistancePending, true);
+  game.update(2);
   assert.equal(game.result?.outcome, 'victory');
   assert.equal(game.result.cheated, true);
   assert.ok(game.players.every(player => player.health > 0 && distance(player, EXIT) <= EXIT.radius));
