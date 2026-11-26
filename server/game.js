@@ -2,6 +2,7 @@ import { ALTARS, EXIT, WIDTH, HEIGHT, DURATION, INTERACTION_RANGE, AUTO_PICKUP_R
 
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
+const ASSIST_PRESENTATION_SECONDS = 2;
 const cleanInput = input => ({
   x: finite(input?.x) ? clamp(input.x, -1, 1) : 0,
   y: finite(input?.y) ? clamp(input.y, -1, 1) : 0,
@@ -40,6 +41,7 @@ export class Game {
     this.exitProgress = 0;
     this.cheats = { invincible: false, infiniteMana: false };
     this.everCheated = false;
+    this.assistanceRemaining = 0;
     this.result = null;
     this.events = [];
   }
@@ -50,14 +52,14 @@ export class Game {
 
   receiveInput(id, input) {
     const player = this.player(id);
-    if (!player || this.result) return;
+    if (!player || this.result || this.assistanceRemaining > 0) return;
     player.input = cleanInput(input);
     player.inputAt = this.elapsed;
   }
 
   action(id, action) {
     const player = this.player(id);
-    if (!player || this.result || !action || typeof action.type !== 'string') return;
+    if (!player || this.result || this.assistanceRemaining > 0 || !action || typeof action.type !== 'string') return;
     if (action.type === 'cheat') return this.cheat(action);
     if (action.type === 'choose') return this.choose(player, action.skill);
     if (player.health <= 0) return this.notice(player, 'You are down. Your teammate can revive you.');
@@ -214,6 +216,11 @@ export class Game {
   update(dt) {
     if (this.result) return;
     if (!finite(dt) || dt <= 0) return;
+    if (this.assistanceRemaining > 0) {
+      this.assistanceRemaining -= dt;
+      if (this.assistanceRemaining <= 0) this.finish('victory', 'Cheat assistance brought both explorers safely to the exit.');
+      return;
+    }
     this.elapsed += dt;
     for (const altar of this.altars) if (!altar.complete && altar.stage <= this.stage) altar.energy = Math.max(0, altar.energy - dt);
     this.effects = this.effects.filter(effect => effect.expires > this.elapsed);
@@ -243,6 +250,7 @@ export class Game {
     this.updateBullets(dt);
     this.updateEnemies(dt);
     this.updateBoss(dt);
+    if (this.assistanceRemaining > 0) return;
     if (this.result) return;
     if (this.players.every(p => p.health <= 0)) return this.finish('defeat', 'Both explorers are down.');
     if (this.exitOpen && this.players.every(p => p.health > 0 && distance(p, EXIT) <= EXIT.radius)) this.exitProgress += dt;
@@ -379,7 +387,7 @@ export class Game {
   }
 
   assistedEscape() {
-    if (this.result || !this.everCheated) return this.result;
+    if (this.result || this.assistanceRemaining > 0 || !this.everCheated) return this.result;
     this.stage = 3;
     for (const altar of this.altars) { altar.energy = 100; altar.complete = true; }
     this.exitOpen = true;
@@ -389,7 +397,7 @@ export class Game {
       player.x = EXIT.x; player.y = EXIT.y;
       player.input = cleanInput({}); player.rescueProgress = 0;
     }
-    return this.finish('victory', 'Cheat assistance brought both explorers safely to the exit.');
+    this.assistanceRemaining = ASSIST_PRESENTATION_SECONDS;
   }
 
   finish(outcome, reason) {
@@ -412,7 +420,8 @@ export class Game {
       enemies: this.enemies.map(({ path, pathAt, ...enemy }) => enemy), bullets: this.bullets, stones: this.stones, effects: this.effects,
       boss: this.boss ? { x: this.boss.x, y: this.boss.y, progress: this.boss.index / this.boss.path.length,
         warnings: this.boss.path.slice(this.boss.index, this.boss.index + Math.ceil(1 / this.boss.interval)) } : null,
-      exitOpen: !!this.exitOpen, exitProgress: this.exitProgress, cheats: this.cheats, cheated: this.everCheated
+      exitOpen: !!this.exitOpen, exitProgress: this.exitProgress, assistancePending: this.assistanceRemaining > 0,
+      cheats: this.cheats, cheated: this.everCheated
     };
   }
 }

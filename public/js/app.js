@@ -57,7 +57,10 @@ function connectSocket() {
       state.notification = 'Shoot hidden creatures, walk near their stones to collect them, then press E to charge A1.'; state.notificationUntil = performance.now() + 5000;
       showScene('game'); renderGame();
     });
-    socket.on('game:state', game => { state.game = game; if (state.scene === 'game') renderGame(); });
+    socket.on('game:state', game => {
+      if (game.assistancePending && !state.game?.assistancePending) for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
+      state.game = game; if (state.scene === 'game') renderGame();
+    });
     socket.on('game:events', events => {
       renderer.events(events);
       for (const event of events) {
@@ -127,14 +130,14 @@ function renderGame() {
     return `<button class="skill-button ${spec ? '' : 'empty'} ${state.selected === slot ? 'selected' : ''}" data-slot="${slot}" aria-label="Skill slot ${slot + 1}${spec ? ': ' + spec.name : ': locked'}"><kbd>${slot + 1}</kbd><strong>${spec?.name || 'Locked'}</strong>${spec ? `<small>${spec.cost} MANA</small>` : ''}${remaining > 0 ? `<span class="skill-cooldown">${Math.ceil(remaining)}s</span>` : ''}</button>`;
   }).join(''));
   $('downed-message').hidden = local.health > 0;
-  $('world-message').textContent = local.notice || (performance.now() < state.notificationUntil ? state.notification : '');
+  $('world-message').textContent = game.assistancePending ? 'CHEAT RESCUE — BOTH EXPLORERS REACHED THE EXIT' : local.notice || (performance.now() < state.notificationUntil ? state.notification : '');
   const nearDown = game.players.find(p => p.id !== local.id && p.health <= 0 && distance(local, p) <= INTERACTION_RANGE);
   const nearAltar = local.stones > 0 && game.altars.find(a => a.stage <= game.stage && !a.complete && distance(local, a) <= INTERACTION_RANGE);
   const nearStone = local.stones < 8 && game.stones.find(s => distance(local, s) <= INTERACTION_RANGE);
   const hint = nearDown ? `Hold to revive ${nearDown.username} (${local.rescueProgress.toFixed(1)}/${REVIVE_DURATION}s)` : nearAltar ? `Charge ${nearAltar.id} / use 1 stone` : nearStone ? 'Pick up energy stone' : '';
-  $('interaction-hint').hidden = !hint || local.health <= 0; $('interaction-hint').querySelector('span').textContent = hint;
+  $('interaction-hint').hidden = game.assistancePending || !hint || local.health <= 0; $('interaction-hint').querySelector('span').textContent = hint;
   for (const [id, key] of [['invincible-toggle', 'invincible'], ['mana-toggle', 'infiniteMana']]) { $(id).setAttribute('aria-checked', String(game.cheats[key])); $(id).textContent = game.cheats[key] ? 'On' : 'Off'; }
-  const signature = local.skillCredits ? local.skills.join(',') + ':' + local.skillCredits : '';
+  const signature = !game.assistancePending && local.skillCredits ? local.skills.join(',') + ':' + local.skillCredits : '';
   if (signature && !$('cheat-dialog').open && !$('manual-dialog').open && !$('leave-dialog').open) {
     if (signature !== lastChoiceSignature) {
       html($('skill-options'), Object.entries(SKILLS).filter(([key]) => !local.skills.includes(key)).map(([key, spec]) => `<button class="skill-option" data-choose="${key}"><strong>${spec.name}</strong><p>${spec.description}</p><small>${spec.cost} MANA / ${spec.cooldown}s COOLDOWN</small></button>`).join(''));
